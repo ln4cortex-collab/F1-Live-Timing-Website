@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>F1 Hub | Championship Standings</title>
+    <style>
+        body {
+            background: #0b0b12;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: white;
+            margin: 0;
+        }
+
+        header {
+            background: #000;
+            border-bottom: 3px solid #e10600;
+            padding: 20px 40px;
+            font-size: 24px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            padding: 25px 40px;
+            background: #15151e;
+            align-items: center;
+        }
+
+        select,
+        input {
+            background: #2b2b35;
+            border: 1px solid #38383f;
+            color: white;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        button {
+            background: #e10600;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #ff2a2a;
+        }
+
+        table {
+            width: 95%;
+            margin: 20px auto;
+            border-collapse: collapse;
+            background: #0b0b12;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th {
+            text-align: left;
+            padding: 15px;
+            color: #949498;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 2px solid #2b2b35;
+        }
+
+        td {
+            padding: 18px 15px;
+            border-bottom: 1px solid #1f1f27;
+        }
+
+        .team-stripe {
+            width: 6px;
+            padding: 0;
+        }
+
+        .pos {
+            font-weight: bold;
+            font-size: 24px;
+            text-align: center;
+            width: 60px;
+        }
+
+        .name {
+            font-weight: bold;
+            font-size: 18px;
+            text-transform: uppercase;
+        }
+
+        .team-label {
+            color: #949498;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+
+        .points-val {
+            font-weight: bold;
+            font-size: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>F1 Championship Standings</header>
+
+    <div class="controls">
+        <input id="year" type="number" value="2026" min="1950" max="2026">
+        <select id="type">
+            <option value="drivers">Drivers (WDC)</option>
+            <option value="constructors">Constructors (WCC)</option>
+        </select>
+        <button onclick="loadStandings()">Update Standings</button>
+    </div>
+
+    <table>
+        <thead id="table-head"></thead>
+        <tbody id="standings-body">
+            <tr>
+                <td colspan="6" style="text-align:center; padding:50px; color:#949498;">Select a season to view
+                    standings.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <script>
+        async function loadStandings() {
+            const year = document.getElementById("year").value;
+            const type = document.getElementById("type").value;
+            const head = document.getElementById("table-head");
+            const body = document.getElementById("standings-body");
+
+            // Dynamic Headers
+            if (type === "drivers") {
+                head.innerHTML = `<tr><th class="team-stripe"></th><th style="text-align:center">Pos</th><th>Driver</th><th>Team</th><th style="text-align:center">Wins</th><th>Pts</th></tr>`;
+            } else {
+                head.innerHTML = `<tr><th class="team-stripe"></th><th style="text-align:center">Pos</th><th>Team</th><th style="text-align:center">Wins</th><th>Pts</th></tr>`;
+            }
+
+            body.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:50px;">Synchronizing Data...</td></tr>`;
+
+            try {
+                const response = await fetch(`http://127.0.0.1:5000/api/standings/${type}/${year}`);
+                const data = await response.json();
+                body.innerHTML = "";
+
+                data.forEach(item => {
+                    const row = document.createElement("tr");
+
+                    if (type === "drivers") {
+                        row.innerHTML = `
+                    <td class="team-stripe" style="background-color: ${item.TeamColor}"></td>
+                    <td class="pos">${item.Position}</td>
+                    <td><div class="name" style="color: ${item.TeamColor}">${item.Driver}</div></td>
+                    <td class="team-label">${item.Team}</td>
+                    <td style="text-align:center">${item.Wins}</td>
+                    <td class="points-val">${item.Points}</td>
+                `;
+                    } else {
+                        row.innerHTML = `
+                    <td class="team-stripe" style="background-color: ${item.TeamColor}"></td>
+                    <td class="pos">${item.Position}</td>
+                    <td><div class="name" style="color: ${item.TeamColor}">${item.Team}</div></td>
+                    <td style="text-align:center">${item.Wins}</td>
+                    <td class="points-val">${item.Points}</td>
+                `;
+                    }
+                    body.appendChild(row);
+                });
+            } catch (e) {
+                body.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#e10600; padding:50px;">Data unavailable for the selected year.</td></tr>`;
+            }
+        }
+    </script>
+</body>
+
+</html>
