@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>F1 LIVE HUB</title>
+    <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --f1-red: #e10600;
+            --f1-black: #15151e;
+            --f1-dark: #0b0b10;
+            --text-grey: #949498;
+        }
+
+        body {
+            background-color: var(--f1-black);
+            font-family: 'Titillium Web', sans-serif;
+            color: white;
+            margin: 0;
+        }
+
+        header {
+            background: var(--f1-dark);
+            border-bottom: 3px solid var(--f1-red);
+            padding: 20px 40px;
+            font-weight: bold;
+            font-size: 24px;
+            letter-spacing: 1px;
+        }
+
+        .controls {
+            background: #1f1f27;
+            padding: 15px 40px;
+            display: flex;
+            gap: 15px;
+        }
+
+        select,
+        input {
+            background: #2b2b35;
+            border: 1px solid #38383f;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+
+        button {
+            background: var(--f1-red);
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 4px;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #ff2a2a;
+        }
+
+        table {
+            width: 95%;
+            max-width: 1200px;
+            margin: 30px auto;
+            border-collapse: collapse;
+            background: var(--f1-dark);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        th {
+            text-align: left;
+            padding: 15px;
+            color: var(--text-grey);
+            font-size: 12px;
+            text-transform: uppercase;
+            border-bottom: 2px solid #2b2b35;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #2b2b35;
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .team-stripe {
+            width: 5px;
+            padding: 0;
+        }
+
+        .pos {
+            font-weight: bold;
+            font-size: 22px;
+            text-align: center;
+        }
+
+        .driver-name {
+            font-weight: bold;
+            font-size: 18px;
+            text-transform: uppercase;
+        }
+
+        .driver-num {
+            font-size: 11px;
+            color: var(--text-grey);
+        }
+
+        .team-name {
+            color: var(--text-grey);
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>F1 LIVE HUB</header>
+
+    <div class="controls">
+        <input id="year" type="number" value="2024" style="width: 80px;">
+        <select id="gp" style="flex-grow: 1;"></select>
+        <select id="session">
+            <option value="R">Race</option>
+            <option value="Q">Qualifying</option>
+            <option value="FP3">Practice 3</option>
+            <option value="FP2">Practice 2</option>
+            <option value="FP1">Practice 1</option>
+        </select>
+        <button onclick="loadResults()">Update</button>
+    </div>
+
+    <table>
+        <thead id="table-head"></thead>
+        <tbody id="results">
+            <tr>
+                <td colspan="8" style="text-align:center; padding:50px; color:var(--text-grey);">Select a session to
+                    begin.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <script>
+        async function loadCalendar() {
+            const year = document.getElementById("year").value;
+            try {
+                const response = await fetch(`http://127.0.0.1:5000/api/calendar/${year}`);
+                const races = await response.json();
+                const gp = document.getElementById("gp");
+                gp.innerHTML = "";
+                races.forEach(race => {
+                    const option = document.createElement("option");
+                    option.text = race;
+                    gp.add(option);
+                });
+            } catch (e) { console.error("Calendar load failed", e); }
+        }
+
+        async function loadResults() {
+            const year = document.getElementById("year").value;
+            const gp = encodeURIComponent(document.getElementById("gp").value);
+            const session = document.getElementById("session").value;
+            const tableHead = document.getElementById("table-head");
+            const tableBody = document.getElementById("results");
+
+            // Update headers based on session type
+            if (session === "Q") {
+                tableHead.innerHTML = `<tr><th class="team-stripe"></th><th style="width:60px; text-align:center;">Pos</th><th>Driver</th><th>Team</th><th>Q1</th><th>Q2</th><th>Q3</th></tr>`;
+            } else {
+                tableHead.innerHTML = `<tr><th class="team-stripe"></th><th style="width:60px; text-align:center;">Pos</th><th>Driver</th><th>Team</th><th>Status</th><th>Pts</th><th>Laps</th></tr>`;
+            }
+
+            tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:40px;">Synchronizing Telemetry...</td></tr>`;
+
+            try {
+                const response = await fetch(`http://127.0.0.1:5000/api/results?year=${year}&gp=${gp}&session=${session}`);
+                const data = await response.json();
+                tableBody.innerHTML = "";
+
+                data.forEach(d => {
+                    const row = document.createElement("tr");
+                    let extraCells = session === "Q"
+                        ? `<td>${d.Q1 || "-"}</td><td>${d.Q2 || "-"}</td><td>${d.Q3 || "-"}</td>`
+                        : `<td>${d.Status}</td><td style="font-weight:bold;">${d.Points}</td><td>${d.Laps}</td>`;
+
+                    row.innerHTML = `
+                <td class="team-stripe" style="background-color: ${d.TeamColor}"></td>
+                <td class="pos">${d.Position || "-"}</td>
+                <td>
+                    <div class="driver-name" style="color: ${d.TeamColor}">${d.BroadcastName}</div>
+                    <div class="driver-num">#${d.DriverNumber}</div>
+                </td>
+                <td class="team-name">${d.TeamName}</td>
+                ${extraCells}
+            `;
+                    tableBody.appendChild(row);
+                });
+            } catch (e) {
+                tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--f1-red);">Session data unavailable for this selection.</td></tr>`;
+            }
+        }
+
+        document.getElementById("year").addEventListener("change", loadCalendar);
+        loadCalendar();
+    </script>
+</body>
+
+</html>
