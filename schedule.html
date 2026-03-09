@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>F1 2026 Season Calendar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: #0b0b10;
+            color: white;
+            font-family: 'Titillium Web', sans-serif;
+            margin: 0;
+            padding-bottom: 50px;
+        }
+
+        header {
+            background: black;
+            border-bottom: 4px solid #e10600;
+            padding: 30px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 35px;
+            padding: 40px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: #15151e;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid #2b2b35;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            border-color: #e10600;
+        }
+
+        /* HERO IMAGE: Now searches Unsplash dynamically */
+        .img-box {
+            height: 220px;
+            width: 100%;
+            position: relative;
+            background: #000;
+            overflow: hidden;
+        }
+
+        .img-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.6;
+            transition: 0.5s;
+        }
+
+        .card:hover .img-box img {
+            opacity: 0.9;
+            transform: scale(1.08);
+        }
+
+        .national-flag {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 42px;
+            border-radius: 4px;
+            z-index: 3;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .round-tag {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: #e10600;
+            padding: 5px 12px;
+            font-weight: 900;
+            font-size: 12px;
+            border-radius: 4px;
+            z-index: 2;
+            color: white;
+        }
+
+        .date-badge {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            background: white;
+            color: black;
+            padding: 8px;
+            border-radius: 6px;
+            text-align: center;
+            min-width: 55px;
+            z-index: 4;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        .date-badge .m {
+            display: block;
+            font-size: 11px;
+            font-weight: 900;
+            color: #e10600;
+            text-transform: uppercase;
+        }
+
+        .date-badge .d {
+            display: block;
+            font-size: 24px;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .info {
+            padding: 25px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .country-name {
+            color: #e10600;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 13px;
+            letter-spacing: 1.2px;
+            margin-bottom: 4px;
+        }
+
+        .race-title {
+            font-size: 20px;
+            font-weight: 900;
+            text-transform: uppercase;
+            line-height: 1.2;
+            margin-bottom: 20px;
+            min-height: 48px;
+        }
+
+        .meta-container {
+            border-top: 1px solid #2b2b35;
+            padding-top: 15px;
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .meta-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #949498;
+            text-transform: uppercase;
+        }
+
+        .meta-val {
+            color: white;
+            font-weight: 700;
+        }
+
+        input {
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #e10600;
+            background: #15151e;
+            color: white;
+            width: 85px;
+            font-weight: bold;
+            outline: none;
+        }
+
+        button {
+            background: #e10600;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 6px;
+            font-weight: 900;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        button:hover {
+            background: #ff1e1e;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div style="width: 40px; height: 4px; background: #e10600;"></div>
+            <h1 style="margin:0; font-size: 22px; letter-spacing: 1px;">F1 CALENDAR EXPLORER</h1>
+        </div>
+        <div>
+            <input type="number" id="year" value="2026">
+            <button onclick="loadSchedule()">Load Season</button>
+        </div>
+    </header>
+
+    <div class="grid" id="grid"></div>
+
+    <script>
+        // Helper to get National Flag
+        async function getFlagUrl(countryName) {
+            try {
+                const mapping = { "USA": "United States", "UAE": "United Arab Emirates", "Abu Dhabi": "United Arab Emirates", "UK": "United Kingdom", "Great Britain": "United Kingdom" };
+                const searchName = mapping[countryName] || countryName;
+                const res = await fetch(`https://restcountries.com/v3.1/name/${searchName}?fullText=true`);
+                const data = await res.json();
+                return data[0].flags.svg;
+            } catch { return ""; }
+        }
+
+        async function loadSchedule() {
+            const year = document.getElementById('year').value;
+            const grid = document.getElementById('grid');
+            grid.innerHTML = "<h2 style='grid-column: 1/-1; text-align:center;'>Fetching Global Race Data...</h2>";
+
+            try {
+                const response = await fetch(`http://127.0.0.1:5000/api/schedule/${year}`);
+                const data = await response.json();
+                grid.innerHTML = "";
+
+                for (const race of data) {
+                    const flagUrl = await getFlagUrl(race.Country);
+
+                    // DYNAMIC IMAGE SEARCH: Using Unsplash Source API to find a relevant race/country photo
+                    // It searches for "F1 Race [Country Name]" to get the best visual
+                    const dynamicRaceImage = `https://source.unsplash.com/featured/?f1,race,${race.Country.replace(' ', '')}`;
+
+                    const card = document.createElement('div');
+                    card.className = 'card';
+
+                    card.innerHTML = `
+                <div class="round-tag">RD ${race.Round}</div>
+                ${flagUrl ? `<img src="${flagUrl}" class="national-flag">` : ''}
+                <div class="img-box">
+                    <img src="${dynamicRaceImage}" alt="Race Image">
+                    <div class="date-badge">
+                        <span class="m">${race.Month}</span>
+                        <span class="d">${race.Day}</span>
+                    </div>
+                </div>
+                <div class="info">
+                    <div class="country-name">${race.Country}</div>
+                    <div class="race-title">${race.EventName}</div>
+                    <div class="meta-container">
+                        <div class="meta-row">
+                            <span>Circuit</span>
+                            <span class="meta-val">${race.Location}</span>
+                        </div>
+                        <div class="meta-row">
+                            <span>Schedule</span>
+                            <span class="meta-val">${race.Date}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+                    grid.appendChild(card);
+                }
+            } catch (e) {
+                grid.innerHTML = `<h2 style='grid-column: 1/-1; text-align:center;'>ERROR: Could not fetch the ${year} calendar.</h2>`;
+            }
+        }
+
+        loadSchedule();
+    </script>
+</body>
+
+</html>
